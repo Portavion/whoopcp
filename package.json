@@ -1,0 +1,27 @@
+{
+  "name": "whoopcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only WHOOP MCP server on Cloudflare Workers",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "check": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts"
+  },
+  "keywords": ["whoop", "mcp", "cloudflare"],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "agents": "^0.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260825.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.126.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "whoopcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "kv_namespaces": [
+    {
+      "binding": "WHOOP_TOKENS",
+      "id": "<prod-namespace-id>",
+      "preview_id": "<preview-namespace-id>"
+    }
+  ],
+  "vars": {
+    "WHOOP_REDIRECT_URI": "https://whoopcp.<account>.workers.dev/whoop/callback"
+  }
+}

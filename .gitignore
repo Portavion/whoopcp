@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# wrangler / local worker state
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+dist/
+.mf/
+
+# env
+.env
+.env.*
+!.env.example
+
+# generated
+*.tsbuildinfo
+worker-configuration.d.ts
+coverage/
+
+# logs / os
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
