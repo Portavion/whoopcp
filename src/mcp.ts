@@ -65,6 +65,7 @@ export function createWhoopServer(env: Env): McpServer {
     },
     async function () {
       return runTool("get_latest", async function () {
+        await whoop.ensureTokens()
         const pair = await Promise.all([
           whoop.fetchRecoveriesPage(5),
           whoop.fetchSleepsPage(5),
@@ -87,6 +88,7 @@ export function createWhoopServer(env: Env): McpServer {
     },
     async function (args: { date: string; timezone_offset?: string }) {
       return runTool("get_day", async function () {
+        await whoop.ensureTokens()
         let offset = args.timezone_offset
         if (!offset) {
           offset = await whoop.timezoneOffset()
@@ -232,6 +234,7 @@ function rangeSchema() {
 }
 
 async function fetchRange(whoop: WhoopClient, args: RangeArgs) {
+  await whoop.ensureTokens()
   let offset = args.timezone_offset
   if (!offset) {
     offset = await whoop.timezoneOffset()

@@ -151,7 +151,7 @@ export async function refreshTokens(env: Env, stored: StoredTokens): Promise<Sto
   if (!res.ok) {
     throw new Error("WHOOP refresh failed")
   }
-  const next = await parseTokenResponse(res, stored.connected_at, stored.user_id)
+  const next = await parseTokenResponse(res, stored.connected_at, stored.user_id, stored.refresh_token)
   await saveOwner(env, next)
   return next
 }
@@ -171,27 +171,40 @@ async function exchangeCode(env: Env, code: string): Promise<StoredTokens> {
   if (!res.ok) {
     throw new Error("WHOOP token exchange failed")
   }
-  return parseTokenResponse(res, Date.now(), undefined)
+  return parseTokenResponse(res, Date.now(), undefined, undefined)
 }
 
 async function parseTokenResponse(
   res: Response,
   connectedAt: number,
   userId: number | undefined,
+  previousRefresh: string | undefined,
 ): Promise<StoredTokens> {
-  const json = (await res.json()) as {
-    access_token: string
-    refresh_token: string
-    expires_in: number
-    scope?: string
-    token_type?: string
+  const json: unknown = await res.json()
+  if (!json || typeof json !== "object") {
+    throw new Error("WHOOP token response invalid")
+  }
+  const rec = json as Record<string, unknown>
+  if (typeof rec.access_token !== "string" || typeof rec.expires_in !== "number") {
+    throw new Error("WHOOP token response invalid")
+  }
+  let refresh = previousRefresh
+  if (typeof rec.refresh_token === "string" && rec.refresh_token.length > 0) {
+    refresh = rec.refresh_token
+  }
+  if (!refresh) {
+    throw new Error("WHOOP token response missing refresh_token")
+  }
+  let scope = SCOPES
+  if (typeof rec.scope === "string" && rec.scope.length > 0) {
+    scope = rec.scope
   }
   return {
     version: 1,
-    access_token: json.access_token,
-    refresh_token: json.refresh_token,
-    expires_at: Date.now() + json.expires_in * 1000 - 60_000,
-    scope: json.scope || SCOPES,
+    access_token: rec.access_token,
+    refresh_token: refresh,
+    expires_at: Date.now() + rec.expires_in * 1000 - 60_000,
+    scope,
     token_type: "bearer",
     connected_at: connectedAt,
     user_id: userId,

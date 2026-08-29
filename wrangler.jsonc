@@ -7,11 +7,14 @@
   "kv_namespaces": [
     {
       "binding": "WHOOP_TOKENS",
-      "id": "<prod-namespace-id>",
-      "preview_id": "<preview-namespace-id>"
+      "id": "c528748f64574c03aff099ff0b92a1e6",
+      "preview_id": "8029d3df24714ced900dcb96de0b4033"
     }
   ],
   "vars": {
-    "WHOOP_REDIRECT_URI": "https://whoopcp.<account>.workers.dev/whoop/callback"
+    "WHOOP_REDIRECT_URI": "https://whoop.portalier.org/whoop/callback"
+  },
+  "triggers": {
+    "crons": ["0,45 * * * *"]
   }
 }

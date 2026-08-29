@@ -45,11 +45,39 @@ export class WhoopClient {
   private env: Env
   private tokens: StoredTokens | null
   private latestOffset: string | null
+  // ponytail: isolate-local lock. Durable Object if two Workers still race.
+  private refreshInFlight: Promise<StoredTokens> | null
 
   constructor(env: Env) {
     this.env = env
     this.tokens = null
     this.latestOffset = null
+    this.refreshInFlight = null
+  }
+
+  /** Load tokens and refresh if expired. Safe to call in parallel. */
+  async ensureTokens(): Promise<StoredTokens> {
+    if (!this.tokens) {
+      this.tokens = await loadOwner(this.env)
+    }
+    if (!this.tokens) {
+      throw new WhoopDisconnected()
+    }
+    if (Date.now() >= this.tokens.expires_at) {
+      return this.refreshOnce()
+    }
+    return this.tokens
+  }
+
+  /** Refresh now even if the access token is still valid. */
+  async refreshNow(): Promise<StoredTokens> {
+    if (!this.tokens) {
+      this.tokens = await loadOwner(this.env)
+    }
+    if (!this.tokens) {
+      throw new WhoopDisconnected()
+    }
+    return this.refreshOnce()
   }
 
   /** Basic profile (caller must drop email at present layer) */
@@ -153,6 +181,7 @@ export class WhoopClient {
     cycles: { records: WhoopCycle[]; pages: number; truncated: boolean }
     workouts: { records: WhoopWorkout[]; pages: number; truncated: boolean }
   }> {
+    await this.ensureTokens()
     let offset = timezoneOffset
     if (!offset) {
       offset = await this.timezoneOffset()
@@ -215,9 +244,7 @@ export class WhoopClient {
     query: Record<string, string> | undefined,
   ): Promise<T> {
     try {
-      const stored = await this.ensureTokens()
-      const next = await refreshTokens(this.env, stored)
-      this.tokens = next
+      const next = await this.refreshOnce()
       const res = await this.whoopFetch(path, query, next.access_token)
       if (res.status === 401) {
         throw new WhoopDisconnected()
@@ -240,28 +267,38 @@ export class WhoopClient {
     }
   }
 
-  private async ensureTokens(): Promise<StoredTokens> {
-    if (!this.tokens) {
-      this.tokens = await loadOwner(this.env)
+  private refreshOnce(): Promise<StoredTokens> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.rotateTokens().finally(() => {
+        this.refreshInFlight = null
+      })
     }
-    if (!this.tokens) {
+    return this.refreshInFlight
+  }
+
+  private async rotateTokens(): Promise<StoredTokens> {
+    let stored = this.tokens
+    if (!stored) {
+      stored = await loadOwner(this.env)
+    }
+    if (!stored) {
       throw new WhoopDisconnected()
     }
-    if (Date.now() >= this.tokens.expires_at) {
-      try {
-        this.tokens = await refreshTokens(this.env, this.tokens)
-      } catch {
-        const again = await loadOwner(this.env)
-        if (!again) {
-          throw new WhoopDisconnected()
-        }
-        this.tokens = again
-        if (Date.now() >= this.tokens.expires_at) {
-          throw new WhoopDisconnected()
-        }
+    try {
+      const next = await refreshTokens(this.env, stored)
+      this.tokens = next
+      return next
+    } catch {
+      const again = await loadOwner(this.env)
+      if (!again) {
+        throw new WhoopDisconnected()
       }
+      this.tokens = again
+      if (Date.now() >= again.expires_at) {
+        throw new WhoopDisconnected()
+      }
+      return again
     }
-    return this.tokens
   }
 
   private async whoopFetch(

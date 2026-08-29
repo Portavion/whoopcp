@@ -70,7 +70,7 @@ npx wrangler deploy
 curl https://whoopcp.<account>.workers.dev/health
 ```
 
-Expect `{"ok":true,"whoop_connected":true}`. `/health` only checks that a KV blob exists. It does not prove the refresh token still works.
+Expect `{"ok":true,"whoop_connected":true}`. `/health` only checks that a KV blob exists. It does not prove the refresh token still works. A Worker cron refreshes the stored tokens at minute 0 and 45 so Coach is less likely to hit expiry mid-session.
 
 ## Local
 

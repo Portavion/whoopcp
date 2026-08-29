@@ -2,6 +2,7 @@ import { createMcpHandler } from "agents/mcp/server"
 import { requireMcpBearer } from "./auth.ts"
 import type { Env } from "./env.ts"
 import { createWhoopServer } from "./mcp.ts"
+import { WhoopClient, WhoopDisconnected } from "./whoop/client.ts"
 import { disconnect, handleCallback, startConnect } from "./whoop/oauth.ts"
 import { ownerConnected } from "./whoop/tokens.ts"
 
@@ -40,6 +41,19 @@ export default {
       })
     }
     return new Response("Not found", { status: 404 })
+  },
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    const whoop = new WhoopClient(env)
+    try {
+      await whoop.refreshNow()
+      console.log(JSON.stringify({ whoop_refresh: "ok" }))
+    } catch (err) {
+      let code = "fail"
+      if (err instanceof WhoopDisconnected) {
+        code = "disconnected"
+      }
+      console.log(JSON.stringify({ whoop_refresh: code }))
+    }
   },
 } satisfies ExportedHandler<Env>
 
