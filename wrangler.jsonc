@@ -1,5 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // Replace id, preview_id, and WHOOP_REDIRECT_URI before deploying on any other Cloudflare account.
+  // The committed values are the original author's and will fail or send OAuth to the wrong host.
   "name": "whoopcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-25",
